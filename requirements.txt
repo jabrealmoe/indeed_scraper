@@ -1,0 +1,6 @@
+requests
+beautifulsoup4
+click
+pandas
+tenacity
+fake-useragent
