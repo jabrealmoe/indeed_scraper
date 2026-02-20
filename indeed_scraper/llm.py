@@ -8,8 +8,20 @@ from .utils import setup_logger
 logger = setup_logger("llm")
 
 
-def generate_resume(job_description, resume_text, company_name, model="llama3.2", output_dir="output"):
-    url = "http://localhost:11434/api/generate"
+def generate_resume(job_description, resume_text, company_name, model=None, output_dir="output"):
+    # Priority: Env var > Parameter > Default
+    api_base = os.getenv("LLM_API_BASE", "http://localhost:11434")
+    api_key = os.getenv("LLM_API_KEY", "")
+    model = model or os.getenv("LLM_MODEL", "llama3.2")
+    
+    # Simple check to see if we're using a standard OpenAI-style endpoint
+    is_openai = "/v1" in api_base or "openai" in api_base.lower() or "anthropic" in api_base.lower()
+    
+    if is_openai:
+        url = f"{api_base.rstrip('/')}/chat/completions"
+    else:
+        # Default to Ollama 'generate' endpoint if not legacy chat
+        url = f"{api_base.rstrip('/')}/api/generate"
 
     system_prompt = """You are an expert resume writer and career consultant with 15+ years of experience crafting ATS-optimized resumes for Fortune 500 companies. Your expertise includes:
         - Strategically rewriting resumes to perfectly align with specific job descriptions
@@ -126,23 +138,40 @@ Guidelines:
         Generate a COMPLETELY REWRITTEN resume in ATX Markdown format that looks like it was crafted specifically for this job opening. Someone reading this resume should think "this person is a perfect fit" without ever seeing the job description."""
 
     # Log the prompt for debugging
-    logger.debug(f"Prompt sent to Ollama:\n{prompt}")
+    logger.debug(f"Prompt sent to LLM:\n{prompt}")
 
-    payload = {
-        "model": model,
-        "prompt": prompt,
-        "system": system_prompt,
-        "stream": False,
-    }
+    if is_openai:
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7,
+            "stream": False,
+        }
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+    else:
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "system": system_prompt,
+            "stream": False,
+        }
+        headers = {}
 
     try:
-        logger.info(f"Generating resume for {company_name} using {model}...")
+        logger.info(f"Generating resume for {company_name} using {model} at {url}...")
         response = requests.post(
-            url, json=payload, timeout=300
+            url, json=payload, headers=headers, timeout=300
         )  # Long timeout for generation
         response.raise_for_status()
         response_data = response.json()
-        resume_content = response_data.get("response", "")
+        
+        if is_openai:
+            resume_content = response_data['choices'][0]['message']['content']
+        else:
+            resume_content = response_data.get("response", "")
 
         # Log the response from Ollama
         logger.debug(f"Response received from Ollama:\n{resume_content}")

@@ -59,7 +59,7 @@ def scrape(query, city, days, pages, output, format):
 @cli.command()
 @click.option('--input', required=True, help='Input jobs file (CSV or JSON)', type=click.Path(exists=True))
 @click.option('--resume', required=True, help='Path to resume text file', type=click.Path(exists=True))
-@click.option('--model', default='llama3.2', help='Ollama model to use')
+@click.option('--model', default=None, help='LLM model to use (defaults to LLM_MODEL env var or llama3.2)')
 @click.option('--output-dir', default='output', help='Directory to save generated resumes')
 def generate(input, resume, model, output_dir):
     """Generates resumes from an existing jobs file."""

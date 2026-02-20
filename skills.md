@@ -13,11 +13,20 @@ This skill provides an automated pipeline for job discovery and customized resum
 
 ## Integration Defaults
 
-| Setting          | Default Value               | Notes                      |
-| ---------------- | --------------------------- | -------------------------- |
-| Execution Path   | `python3 indeed_scraper.py` | Run from project root      |
-| Output Directory | `output/`                   | Consolidated storage       |
-| LLM Model        | `llama3.2`                  | Local execution via Ollama |
+| Setting          | Default Value               | Notes                           |
+| ---------------- | --------------------------- | ------------------------------- |
+| Execution Path   | `python3 indeed_scraper.py` | Run from project root           |
+| Output Directory | `output/`                   | Consolidated storage            |
+| LLM_API_BASE     | `http://localhost:11434`    | Override for OpenAI/OpenClaw    |
+| LLM_MODEL        | `llama3.2`                  | Supported local or remote model |
+
+## LLM Configuration (Interoperability)
+
+The tool supports both **Ollama** and **OpenAI-compatible** APIs (like those used by OpenClaw). Configure via environment variables:
+
+- `LLM_API_BASE`: Set to your framework's API endpoint (e.g., `http://localhost:8000/v1`).
+- `LLM_API_KEY`: Required if using a hosted provider or authenticated proxy.
+- `LLM_MODEL`: The specific model string to pass to the API.
 
 ## Available Commands
 
