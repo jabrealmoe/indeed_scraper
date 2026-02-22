@@ -1,0 +1,25 @@
+services:
+  # The Database
+  db:
+    # We must use an image that includes pgvector by default
+    image: pgvector/pgvector:pg16
+    container_name: indeed_pg
+    environment:
+      POSTGRES_USER: scraper
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: scraper_jobs
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+  # (Optional check) You can also run Ollama directly via Docker if you do not have the App installed
+  # ollama:
+  #   image: ollama/ollama
+  #   container_name: local_ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+
+volumes:
+  pgdata: # ollama_data:

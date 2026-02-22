@@ -1,9 +1,12 @@
 import requests
 from urllib.parse import urlencode
 from typing import List
-from .models import Job
+from .models import Job as ScrapedJob
+from .db_models import Job as DBJob
+from .db import get_db, SessionLocal, engine, Base
 from .parser import IndeedParser
 from .utils import get_random_headers, random_sleep, request_retry, setup_logger, resolve_redirect
+from .llm import get_ollama_embedding
 
 logger = setup_logger("scraper")
 
@@ -32,7 +35,7 @@ class IndeedScraper:
         response.raise_for_status()
         return response.text
 
-    def scrape(self, query: str, city: str, days: int, pages: int) -> List[Job]:
+    def scrape(self, query: str, city: str, days: int, pages: int) -> List[ScrapedJob]:
         """
         Main scraping method.
         
@@ -119,4 +122,32 @@ class IndeedScraper:
             else:
                 job.full_description = "No link available"
 
+        # Persist jobs to PostgreSQL
+        session = SessionLocal()
+        try:
+            for job in all_jobs:
+                # Generate embedding if we have a full description
+                vec = None
+                if job.full_description and not job.full_description.startswith("Error"):
+                    try:
+                        vec = get_ollama_embedding(job.full_description)
+                    except Exception as e:
+                        logger.warning(f"Failed to generate embedding for {job.title}: {e}")
+
+                db_job = DBJob(
+                    title=job.title,
+                    company=job.company,
+                    location=job.location,
+                    link=job.link,
+                    query=job.query,
+                    posted_date=job.posted,
+                    full_description=job.full_description,
+                    embedding=vec,
+                    company_url=job.company_url,
+                    is_workday=(job.is_workday == "Yes"),
+                )
+                session.merge(db_job)  # upsert based on unique link
+            session.commit()
+        finally:
+            session.close()
         return all_jobs

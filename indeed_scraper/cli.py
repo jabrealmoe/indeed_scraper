@@ -5,15 +5,18 @@ import os
 from .scraper import IndeedScraper
 from .utils import setup_logger
 from .models import Job
-
-from .llm import generate_resume
+from .db import SessionLocal, engine, Base
+from .db_models import Job as DBJob
+from sqlalchemy import text
+from .llm import generate_resume, get_ollama_embedding
 
 logger = setup_logger("cli")
 
 @click.group()
 def cli():
     """Indeed Scraper and Resume Generator CLI"""
-    pass
+    # Initialize the database tables if they do not exist
+    Base.metadata.create_all(bind=engine)
 
 @cli.command()
 @click.option('--query', required=True, help='Job search keywords (e.g., "python developer")')
@@ -107,5 +110,40 @@ def validate_extension(filename, format):
         return f"{base}{expected_ext}"
     return filename
 
+
+def get_query_embedding(query_text: str) -> list:
+    """Return a local Ollama embedding for query_text — free, no API key needed."""
+    return get_ollama_embedding(query_text)
+
+@cli.command()
+@click.option('--query', required=True, help='Natural‑language query to find similar jobs')
+@click.option('--top', default=5, help='Number of most similar jobs to return')
+def similar(query, top):
+    """Find the *top* jobs whose stored embeddings are most similar to the query.
+    Uses PostgreSQL's pgvector `<=>` (cosine distance) operator.
+    """
+    # Compute the query embedding
+    q_vec = get_query_embedding(query)
+    # Run the similarity query
+    import json
+    with SessionLocal() as db:
+        stmt = text(
+            """
+            SELECT id, title, company, link, array_to_json(embedding)::text::vector <=> cast(:qvec as text)::vector AS distance
+            FROM jobs
+            WHERE embedding IS NOT NULL
+            ORDER BY distance ASC
+            LIMIT :limit
+            """
+        )
+        rows = db.execute(stmt, {"qvec": json.dumps(q_vec), "limit": top}).fetchall()
+    if not rows:
+        click.echo("No similar jobs found.")
+        return
+    click.echo(f"Top {top} similar jobs for query: '{query}'")
+    for row in rows:
+        click.echo(f"- [{row.distance:.4f}] {row.title} at {row.company} -> {row.link}")
+
 if __name__ == '__main__':
     cli()
+

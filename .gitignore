@@ -138,3 +138,6 @@ cython_debug/
 # Exclude CSV files as requested
 *.csv
 output/
+*.db
+*.sqlite
+.env
