@@ -4,3 +4,6 @@ click
 pandas
 tenacity
 fake-useragent
+openpyxl
+sqlalchemy
+psycopg2-binary
