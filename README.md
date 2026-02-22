@@ -1,25 +1,34 @@
-# Indeed Job Scraper & Resume AI
+# Indeed Job Scraper & Semantic Resume Aligner
 
 ![Recruiter Clown](./recruiter_clown.png)
 
-A comprehensive tool built to navigate an overly saturated tech job market. This CLI application streamlines your search by scraping real listings, persisting them to a vector database, and using a local LLM to generate highly customized, ATS-optimized resumes.
+A comprehensive tool built to navigate an overly saturated tech job market. This CLI application streamlines your search by scraping real listings, persisting them to a vector database, and using local LLM technology to perform **Semantic Resume Alignment**—ensuring your real-world experience is perfectly translated into the terminology that recruiters and ATS systems prioritize.
 
 ## Features
 
 - **Automated Scraping**: Fetches job listings including title, company, location, salary, job type, and full job descriptions.
 - **Central Manifest**: Consolidates multiple searches into a single `manifest.xlsx`, with each query getting its own tab.
 - **Semantic Search**: Persists listings to a PostgreSQL database with `pgvector` for semantic similarity search using local Ollama embeddings.
-- **AI Resume Generation**: Uses a local Ollama instance to rewrite your base resume for specific job postings.
+- **Semantic Resume Alignment**: Uses a local Ollama instance to translate your base resume's accomplishments into the specific conceptual language of a job posting.
 - **Smart Organization**: All generated data and resumes are organized in the `output/` folder and the central manifest.
+
+## Responsible AI & Ethical Framing
+
+This tool is designed for **Semantic Alignment**, not fabrication.
+
+> [!IMPORTANT]
+> **Translation, not Invention**: The goal of this tool is to bridge the "semantic gap" between how you describe your skills and how a specific company's JD describes them. It reflects your _actual_ experience using the _vocabulary_ of the target role.
+>
+> **User Responsibility**: Users are responsible for ensuring all final resumes accurately represent their true professional history. Do not use this tool to claim skills or experiences you do not possess.
 
 ## Prerequisites
 
 1. **Python 3.x**: Ensure you have Python installed.
 2. **Docker Desktop**: Required for the PostgreSQL/pgvector database.
-3. **Ollama**: Required for resume generation and embeddings.
+3. **Ollama**: Required for alignment and embeddings.
    - Install from [ollama.com](https://ollama.com).
    - Pull necessary models:
-     - `ollama pull llama3.2` (Resume generation)
+     - `ollama pull llama3.2` (Semantic alignment)
      - `ollama pull nomic-embed-text` (Semantic search)
 
 ## Installation
@@ -57,17 +66,17 @@ Find jobs that match the _meaning_ of your query, not just keywords. Uses local 
 python3 indeed_scraper.py similar --query "Looking for a backend role with Python and FastAPI" --top 5
 ```
 
-### 3. Generating Resumes
+### 3. Semantic Resume Alignment
 
-Generate customized resumes for each job in a scraped file. These are automatically saved to the database.
+Translate your resume into the specific language of a job description. Aligned resumes are automatically saved to the database.
 
 ```bash
-python3 indeed_scraper.py generate --input output/jobs.csv --resume my_resume.txt
+python3 indeed_scraper.py align --input output/jobs.csv --resume my_resume.txt
 ```
 
-### 4. Retrieving Stored Resumes
+### 4. Retrieving Aligned Resumes
 
-Fetch a previously generated resume from the database by its job ID.
+Fetch a previously aligned resume from the database by its job ID.
 
 ```bash
 python3 indeed_scraper.py fetch-resume --job-id 42

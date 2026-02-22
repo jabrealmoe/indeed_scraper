@@ -9,7 +9,7 @@ from .models import Job
 from .db import SessionLocal, engine, Base
 from .db_models import Job as DBJob
 from sqlalchemy import text
-from .llm import generate_resume, get_ollama_embedding
+from .llm import semantic_resume_alignment, get_ollama_embedding
 
 logger = setup_logger("cli")
 
@@ -78,10 +78,10 @@ def scrape(query, city, days, pages, output):
 @click.option('--input', required=True, help='Input jobs file (Excel, CSV, or JSON)', type=click.Path(exists=True))
 @click.option('--resume', required=True, help='Path to resume text file', type=click.Path(exists=True))
 @click.option('--model', default=None, help='LLM model to use (defaults to LLM_MODEL env var or llama3.2)')
-@click.option('--output-dir', default='output', help='Directory to save generated resumes')
+@click.option('--output-dir', default='output', help='Directory to save aligned resumes')
 @click.option('--sheet', default=None, help='Sheet name to read from if using Excel manifest')
-def generate(input, resume, model, output_dir, sheet):
-    """Generates resumes from an existing jobs file or manifest sheet."""
+def align(input, resume, model, output_dir, sheet):
+    """Semantically aligns your resume with job descriptions."""
     try:
         # Load jobs
         if input.lower().endswith('.csv'):
@@ -104,7 +104,7 @@ def generate(input, resume, model, output_dir, sheet):
 
         jobs = df.to_dict('records')
         logger.info(f"Loaded {len(jobs)} jobs from {input}")
-        logger.info(f"Generating optimized resumes using model '{model}' in directory '{output_dir}'...")
+        logger.info(f"Performing semantic alignment using model '{model}' in directory '{output_dir}'...")
 
         for i, job in enumerate(jobs):
             # Safe access to fields
@@ -116,8 +116,8 @@ def generate(input, resume, model, output_dir, sheet):
                  company = f"Unknown_Company_{i}"
             
             if description and isinstance(description, str) and "Description not found" not in description:
-                logger.info(f"Processing resume for job {i+1}/{len(jobs)}: {title} at {company}")
-                success, content = generate_resume(description, resume_text, str(company), model=model, output_dir=output_dir)
+                logger.info(f"Aligning resume for job {i+1}/{len(jobs)}: {title} at {company}")
+                success, content = semantic_resume_alignment(description, resume_text, str(company), model=model, output_dir=output_dir)
                 
                 if success and content:
                     # Persistence to DB
@@ -128,11 +128,11 @@ def generate(input, resume, model, output_dir, sheet):
                             if db_job:
                                 db_job.generated_resume = content
                                 db.commit()
-                                logger.info(f"Saved resume to database for job: {title}")
+                                logger.info(f"Saved aligned resume to database for job: {title}")
                             else:
                                 logger.debug(f"Job not found in database by link, skipping DB persistence: {link}")
             else:
-                logger.warning(f"Skipping resume generation for job {i+1}: No description available.")
+                logger.warning(f"Skipping semantic alignment for job {i+1}: No description available.")
 
     except Exception as e:
         logger.error(f"Error during generation: {e}")

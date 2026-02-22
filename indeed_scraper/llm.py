@@ -8,7 +8,7 @@ from .utils import setup_logger
 logger = setup_logger("llm")
 
 
-def generate_resume(job_description, resume_text, company_name, model=None, output_dir="output"):
+def semantic_resume_alignment(job_description, resume_text, company_name, model=None, output_dir="output"):
     # Priority: Env var > Parameter > Default
     api_base = os.getenv("LLM_API_BASE", "http://localhost:11434")
     api_key = os.getenv("LLM_API_KEY", "")
