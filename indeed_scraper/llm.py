@@ -196,3 +196,44 @@ Guidelines:
     except Exception as e:
         logger.error(f"Failed to generate resume for {company_name}: {e}")
         return False
+
+
+def get_ollama_embedding(text: str, model: str = None) -> list[float]:
+    """Generate a text embedding using a local Ollama model.
+
+    This is 100% local — no API keys, no cost.
+    Requires Ollama to be running (docker-compose up or `ollama serve`).
+
+    Args:
+        text:  The text to embed (e.g. job description or résumé).
+        model: Ollama embedding model to use.
+               Defaults to EMBED_MODEL env var or 'nomic-embed-text'
+               (a strong, free, fully-local embedding model).
+
+    Returns:
+        A list of floats representing the embedding vector.
+
+    Raises:
+        RuntimeError: if Ollama is not reachable or returns an error.
+    """
+    api_base = os.getenv("LLM_API_BASE", "http://localhost:11434")
+    model = model or os.getenv("EMBED_MODEL", "nomic-embed-text")
+    url = f"{api_base.rstrip('/')}/api/embed"
+
+    try:
+        resp = requests.post(
+            url,
+            json={"model": model, "input": text},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        # Ollama /api/embed returns {"embeddings": [[...]], ...}
+        return data["embeddings"][0]
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(
+            f"Could not connect to Ollama at {url}. "
+            "Is it running? Try: docker-compose up -d"
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Embedding request failed: {exc}") from exc

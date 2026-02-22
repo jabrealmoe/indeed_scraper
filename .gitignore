@@ -141,3 +141,6 @@ output/
 manifest.xlsx
 your_resume.txt
 env_packages/
+*.db
+*.sqlite
+.env
